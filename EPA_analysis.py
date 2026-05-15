@@ -1,5 +1,5 @@
 """
-Sophia Patrin
+Sophia Patrin & Melodie Nekoorad
 CSE 163
 Final Project
 Exploratory Data Analysis
@@ -180,30 +180,205 @@ class EPAAnalysis:
         print("\nFigure 4 Caption:")
         print("Scatterplot showing a strong positive linear relationship between PM2.5 concentration and AQI where higher particle concentrations correspond to worse air quality.")
 
+    def get_epa_data(self) -> pd.DataFrame:
+            """
+            Returns the cleaned EPA dataframe for merging.
+            """
+            return self._epa
 
 
+# MELS PART
+class CDCAnalysis:
+    """
+    A class to perform exploratory data analysis on CDC PLACES asthma dataset.
+    """
+
+    FILEPATH: str = "CDC_PLACES_2024.csv"
+
+    def __init__(self, filepath: str = FILEPATH) -> None:
+        """
+        Initialize the CDCAnalysis object.
+        """
+        self._filepath: str = filepath
+        self._cdc: pd.DataFrame | None = None
+        self._asthma: pd.DataFrame | None = None
+
+    def load_data(self) -> None:
+        """
+        Load the CDC dataset and filter to Washington State.
+        """
+        self._cdc = pd.read_csv(self._filepath, low_memory=False)
+        self._cdc = self._cdc[self._cdc['StateDesc'] == 'Washington']
+        print("\nCDC Data loaded successfully.\n")
+        print(self._cdc.head())
+
+    def clean_data(self) -> None:
+        """
+        Clean the dataset by: Filtering to 2022, Filtering to current asthma among adults measure,
+        Using Crude prevalence, and removing rows with missing Data_Value
+        """
+        self._asthma = self._cdc[
+            (self._cdc['Year'] == 2022) & 
+            (self._cdc['Measure'] == 'Current asthma among adults') &
+            (self._cdc['Data_Value_Type'] == 'Crude prevalence')
+        ].copy()
+        
+        self._asthma = self._asthma.dropna(subset=['Data_Value'])
+        self._asthma = self._asthma[['LocationName', 'Data_Value']].copy()
+        self._asthma.columns = ['county', 'asthma_prevalence']
+        
+        print("\nCDC Data cleaning complete.")
+    
+    def report_summary(self) -> None:
+        """
+        Prints the summary information.
+        """
+        print("\n" + "="*50)
+        print("CDC DATASET SUMMARY")
+        print("="*50)
+        print(f"Original CDC rows (Washington): {self._cdc.shape[0]}")
+        print(f"Filtered Asthma rows: {self._asthma.shape[0]}")
+    
+        print("\nMISSING VALUES IN ASTHMA DATA:")
+        print(self._asthma.isnull().sum())
+        
+        print("\nNUMBER OF COUNTIES:")
+        print(self._asthma["county"].nunique())
+    
+        print("\nSUMMARY STATISTICS (Asthma Prevalence):")
+        print(self._asthma["asthma_prevalence"].describe())
+
+    def plot_histogram(self) -> None:
+        """
+        Create and save histogram of asthma prevalence distribution.
+        """
+        plt.figure()
+        sns.histplot(self._asthma["asthma_prevalence"], bins=10, color='steelblue', edgecolor='black')
+        plt.axvline(self._asthma["asthma_prevalence"].mean(), color='red', linestyle='--', 
+                    label=f"Mean: {self._asthma['asthma_prevalence'].mean():.1f}%")
+        plt.title("Distribution of Asthma Prevalence Across Washington Counties (2022)")
+        plt.xlabel("Asthma Prevalence (%)")
+        plt.ylabel("Number of Counties")
+        plt.legend()
+        plt.savefig("fig5_asthma_histogram.png")
+        plt.close()
+        print("\nFigure 5 Caption:")
+        print("Histogram showing the distribution of adult asthma prevalence across all 39 Washington counties. The distribution is roughly symmetric with a mean of 11.8%, suggesting asthma rates are relatively consistent across the state.")
+
+    def plot_boxplot(self) -> None:
+        """
+        Create and save box plot of asthma prevalence.
+        """
+        plt.figure(figsize=(8, 6))
+        box = plt.boxplot(self._asthma["asthma_prevalence"], vert=True, patch_artist=True,
+                          boxprops=dict(facecolor='lightblue', color='black'),
+                          whiskerprops=dict(color='black'),
+                          capprops=dict(color='black'),
+                          medianprops=dict(color='red', linewidth=2))
+        
+        plt.axhline(self._asthma["asthma_prevalence"].mean(), color='green', linestyle='--', 
+                    linewidth=1.5, label=f"Mean: {self._asthma['asthma_prevalence'].mean():.1f}%")
+        plt.ylabel("Asthma Prevalence (%)")
+        plt.title("Summary of Asthma Prevalence Across Washington Counties (2022)")
+        plt.xticks([1], ['Asthma Prevalence'])
+        plt.legend()
+        plt.savefig("fig6_asthma_boxplot.png")
+        plt.close()
+        print("\nFigure 6 Caption:")
+        print("Box plot summarizing asthma prevalence across Washington counties. The median is 11.9%, with the middle 50% of counties falling between 11.6% and 12.2%. One mild outlier is present (King County at 9.3%), but it falls within normal range and does not violate assumptions for parametric testing.")
+    
+    def get_asthma_data(self) -> pd.DataFrame:
+        """
+        Returns the cleaned asthma dataframe for merging.
+        """
+        return self._asthma
+
+
+def merge_datasets(epa_df: pd.DataFrame, asthma_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Merge EPA PM2.5 county averages with CDC asthma prevalence data by computing country averages from EPA data and cleaning names, then merging.
+    """
+    county_avg = epa_df.groupby("County")["Daily Mean PM2.5 Concentration"].mean().reset_index()
+    county_avg.columns = ['county', 'annual_mean_pm25']
+    
+    county_avg['county'] = county_avg['county'].str.replace(' County', '').str.strip()
+    asthma_df['county'] = asthma_df['county'].str.strip()
+    
+    merged = pd.merge(county_avg, asthma_df, on='county', how='inner')
+
+    print("\n")
+    print("MERGED DATASET SUMMARY")
+    print(f"Matched counties: {len(merged)}")
+    print(f"Columns: {list(merged.columns)}")
+    print("\nFirst 5 rows:")
+    print(merged.head())
+    
+    return merged
+
+def plot_merged_scatter(merged: pd.DataFrame) -> None:
+    """
+    Create scatter plot of PM2.5 vs Asthma prevalence.
+    """
+    corr = merged['annual_mean_pm25'].corr(merged['asthma_prevalence'])
+    print(f"\nCorrelation (PM2.5 vs Asthma): {corr:.4f}")
+    
+    plt.figure(figsize=(10, 6))
+    sns.regplot(data=merged, x='annual_mean_pm25', y='asthma_prevalence',
+                scatter_kws={'alpha': 0.7, 'color': 'steelblue'},
+                line_kws={'color': 'red', 'linewidth': 2})
+    
+    plt.text(0.05, 0.95, f'Correlation: r = {corr:.3f}', 
+             transform=plt.gca().transAxes, fontsize=12,
+             verticalalignment='top', 
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
+    plt.xlabel('Annual Mean PM2.5 Concentration (μg/m³)')
+    plt.ylabel('Adult Asthma Prevalence (%)')
+    plt.title('PM2.5 Exposure vs. Asthma Prevalence by Washington County (2022)')
+    plt.savefig("fig7_pm25_vs_asthma.png", dpi=150)
+    plt.close()
+    print("\nFigure 7 Caption:")
+    print("Scatter plot showing the relationship between annual mean PM2.5 concentration and asthma prevalence across 31 Washington counties. The positive trend line (r = 0.52) suggests that higher pollution is associated with higher asthma rates.")
 
 def main() -> None:
     '''
-    Main driver function for the EPA exploratory data analysis program.
+    Main driver function for the EPA and CDC exploratory data analysis program.
     '''
-    analysis = EPAAnalysis()
+    print("CSE 163 FINAL PROJECT - EXPLORATORY DATA ANALYSIS")
+    print("Washington State PM2.5 and Asthma Prevalence (2022)")
 
-    analysis.load_data()
-    analysis.clean_data()
-    analysis.report_summary()
+    print("PART 1: EPA PM2.5 DATA ANALYSIS")
+    epa_analysis = EPAAnalysis()
+    epa_analysis.load_data()
+    epa_analysis.clean_data()
+    epa_analysis.report_summary()
+    epa_analysis.plot_dist()
+    epa_analysis.plot_time_series()
+    county_avg = epa_analysis.compute_county_avg()
+    epa_analysis.plot_county_bar(county_avg)
+    epa_analysis.plot_pm25_vs_aqi()
 
-    analysis.plot_dist()
-    analysis.plot_time_series()
+    print("PART 2: CDC ASTHMA DATA ANALYSIS")
+    cdc_analysis = CDCAnalysis()
+    cdc_analysis.load_data()
+    cdc_analysis.clean_data()
+    cdc_analysis.report_summary()
+    cdc_analysis.plot_histogram()
+    cdc_analysis.plot_boxplot()
 
-    county_avg = analysis.compute_county_avg()
-
-    print("\nCounty averages preview:")
-    print(county_avg.head())
-
-    analysis.plot_county_bar(county_avg)
-    analysis.plot_pm25_vs_aqi()
+    print("PART 3: MERGED ANALYSIS")
+    merged = merge_datasets(epa_analysis.get_epa_data(), cdc_analysis.get_asthma_data())
+    plot_merged_scatter(merged)
+    
+    print("  fig1_pm25_distribution.png")
+    print("  fig2_pm25_time_series.png")
+    print("  fig3_top10_pm25.png")
+    print("  fig4_pm25_vs_aqi.png")
+    print("  fig5_asthma_histogram.png")
+    print("  fig6_asthma_boxplot.png")
+    print("  fig7_pm25_vs_asthma.png")
 
 
 if __name__ == "__main__":
     main()
+    
