@@ -63,7 +63,10 @@ def test_correlation() -> None:
     analysis.load_data()
     analysis.clean_data()
 
-    corr = analysis._epa["Daily Mean PM2.5 Concentration"].corr(analysis._epa["Daily AQI Value"])
+    corr = analysis._epa[
+        "Daily Mean PM2.5 Concentration"
+    ].corr(
+        analysis._epa["Daily AQI Value"])
     assert corr > 0
 
 
