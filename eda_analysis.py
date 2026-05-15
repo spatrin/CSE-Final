@@ -6,7 +6,8 @@ Exploratory Data Analysis
 
 Description:
 This program performs exploratory data analysis on the EPA
-PM2.5 daily air quality dataset for Washington State in 2022.
+PM2.5 daily air quality dataset for Washington State in 2022,
+aswell as the CDC PLACES dataset.
 It includes data loading, cleaning, summary statistics, missing
 value analysis, and visualizations to understand pollution trends
 across time and counties. All plots are saved as image files.
