@@ -15,6 +15,8 @@ across time and counties. All plots are saved as image files.
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy import stats  # For correlation p-values, t-tests
+import statsmodels.api as sm  # For linear regression
 
 
 class EPAAnalysis:
@@ -22,8 +24,8 @@ class EPAAnalysis:
     A class to perform exploratory data analysis on EPA PM2.5 dataset.
     """
 
-    FILEPATH: str = "EPA_PM2.5_daily.csv"
-
+    FILEPATH: str = "EPA_PM2.5_WA_2022.csv"
+    
     def __init__(self, filepath: str = FILEPATH) -> None:
         """
         Initialize the EPAAnalysis object.
