@@ -51,15 +51,15 @@ You must download the datasets yourself:
 ### EPA PM2.5 Data (2022)
 Download from:
 https://www.epa.gov/outdoor-air-quality-data/download-daily-data
-pollutant = PM2.5
-year = 2022
-geographic area = Washington
-rename to: EPA_PM2.5_WA_2022.csv
+- pollutant = PM2.5
+- year = 2022
+- geographic area = Washington
+- rename to: EPA_PM2.5_WA_2022.csv
 
 ### CDC PLACES Data (2024 Release)
 Download from:
 https://data.cdc.gov/](https://data.cdc.gov/500-Cities-Places/PLACES-Local-Data-for-Better-Health-County-Data-20/fu4u-a9bh/about_data)
-rename to: CDC_PLACES_2024.csv
+- rename to: CDC_PLACES_2024.csv
 
 ### Important
 - Place both CSV files in the same directory as your project files
