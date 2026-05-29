@@ -2,12 +2,8 @@
 Sophia Patrin & Melodie Nekoorad
 CSE 163
 Final Project
-Exploratory Data Analysis
-
-Description:
-This program includes data loading, cleaning, and combining datasets
-to prepare both the EPA PM2.5 daily air quality datasets and the
-CDC Places Dataset for analysis.
+Description: This program includes data loading, cleaning,
+and merging the EPA and CDC datasets to prepare for analysis.
 """
 
 import pandas as pd
@@ -34,8 +30,6 @@ class EPA:
         Load the EPA dataset and store it in the class.
         """
         self._epa = pd.read_csv(self._filepath)
-        print("Data loaded successfully.\n")
-        print(self._epa.head())
 
     def clean_data(self) -> None:
         """
@@ -54,8 +48,6 @@ class EPA:
         self._epa["Date"] = pd.to_datetime(self._epa["Date"])
         self._epa = self._epa[self._epa["Daily Mean PM2.5 Concentration"] >= 0]
 
-        print("\nData cleaning complete.")
-
     def compute_county_avg(self) -> pd.DataFrame:
         """
         Compute average PM2.5 concentration per county.
@@ -71,6 +63,7 @@ class EPA:
         Returns the cleaned EPA dataframe for merging.
         """
         return self._epa
+
 
 class CDC:
     """
@@ -93,8 +86,6 @@ class CDC:
         """
         self._cdc = pd.read_csv(self._filepath, low_memory=False)
         self._cdc = self._cdc[self._cdc['StateDesc'] == 'Washington']
-        print("\nCDC Data loaded successfully.\n")
-        print(self._cdc.head())
 
     def clean_data(self) -> None:
         """
@@ -111,8 +102,6 @@ class CDC:
         self._asthma = self._asthma.dropna(subset=['Data_Value'])
         self._asthma = self._asthma[['LocationName', 'Data_Value']].copy()
         self._asthma.columns = ['county', 'asthma_prevalence']
-
-        print("\nCDC Data cleaning complete.")
 
     def get_asthma_data(self) -> pd.DataFrame:
         """
@@ -153,7 +142,7 @@ def merge_datasets(epa_df: pd.DataFrame,
 
 def plot_merged_scatter(merged: pd.DataFrame) -> None:
     """
-    Create a scatter plot of PM2.5 vs Asthma prevalence.
+    Create scatter plot of PM2.5 vs Asthma prevalence.
     """
     corr = merged['annual_mean_pm25'].corr(merged['asthma_prevalence'])
     print(f"\nCorrelation (PM2.5 vs Asthma): {corr:.4f}")
@@ -182,10 +171,10 @@ def plot_merged_scatter(merged: pd.DataFrame) -> None:
         "no significant linear relationship between PM2.5 exposure and"
         "asthma prevalence in Washington State in 2022.")
 
+
 def load_and_merge_data() -> pd.DataFrame:
     """
-    Loads, cleans, and merges EPA and CDC datasets.
-    Returns merged dataframe.
+    returns clean, merged dataframe.
     """
     epa = EPA()
     epa.load_data()
@@ -195,7 +184,5 @@ def load_and_merge_data() -> pd.DataFrame:
     cdc.load_data()
     cdc.clean_data()
 
-    merged = merge_datasets(epa.get_epa_data(), cdc.get_asthma_data())
-    return merged
-
-    
+    df = merge_datasets(epa.get_epa_data(), cdc.get_asthma_data())
+    return df

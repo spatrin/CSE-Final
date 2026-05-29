@@ -2,18 +2,23 @@
 Sophia Patrin & Melodie Nekoorad
 CSE 163
 Final Project
-Description: 
+Description:
 This program performs the complete statistical analysis
 for the final project.
 
 Research Question 1:
-Correlation between PM2.5 and asthma prevalence
+Is there a statistically significant correlation between
+county-level annual mean PM2.5 concentration and hospitalization
+rates for respiratory disease in Washington State in 2022?
 
 Research Question 2:
-T-test comparing high vs low PM2.5 counties
+Do counties with the highest PM2.5 concentrations have
+significantly different asthma prevalence rates than other
+Washington counties?
 
 Research Question 3:
-Linear regression using statsmodels
+Can county-level PM2.5 concentrations predict respiratory
+hospitalization rates using confidence intervals?
 """
 
 import data_cleaning
@@ -24,24 +29,33 @@ from scipy.stats import pearsonr
 import statsmodels.api as sm
 import pandas as pd
 
+
 class ResearchQuestions:
     """
-    Contains methods for each research question
+    Contains methods for each research question.
     """
 
-    def rq_1(df: pd.DataFrame) -> None:
+    def __init__(self, df: pd.DataFrame):
         """
-        Computes Pearson correlation between PM2.5 and asthma prevalence.
-        Takes in the merged dataset as a dataframe with PM2.5 and asthma columns.
-        Returns a tuple of the correlation coefficient and the p-value respectively.
+        Initialize with merged dataset
         """
-        pm25 = df["annual_mean_pm25"]
-        asthma = df["asthma_prevalence"]
+        self._df = df
+
+    def rq_1(self) -> tuple:
+        """
+        Computes Pearson correlation between PM2.5 and
+        asthma prevalence. Takes in the merged dataset
+        as a dataframe with PM2.5 and asthma columns.
+        Returns a tuple of the correlation coefficient
+        and the p-value respectively.
+        """
+        pm25 = self._df["annual_mean_pm25"]
+        asthma = self._df["asthma_prevalence"]
         r, p_value = pearsonr(pm25, asthma)
 
         print("\n--- Research Question 1 ---")
         print("Correlation between PM2.5 and Asthma Prevalence")
-        print(f"Number of counties: {len(df)}")
+        print(f"Number of counties: {len(self._df)}")
         print(f"Correlation coefficient (r): {r:.4f}")
         print(f"P-value: {p_value:.4f}")
 
@@ -50,26 +64,30 @@ class ResearchQuestions:
         else:
             print("Conclusion: No statistically significant relationship.")
 
-        print(r, p_value)
-    
-    
-    def rq_2(df: pd.DataFrame) -> None:
+        return (r, p_value)
+
+    def rq_2(self) -> None:
         """
         Research Question 2:
         Do counties with the highest PM2.5 concentrations have significantly
         different asthma prevalence than other counties?
-    
-        This function compares top 10 PM2.5 counties vs remaining counties using an independent t-test.
+
+        This function compares top 10 PM2.5 counties vs
+        remaining counties using an independent t-test.
         """
-        sorted_df = df.sort_values(by="annual_mean_pm25", ascending=False)
+        sorted_df = self._df.sort_values(
+            by="annual_mean_pm25", ascending=False)
 
         top_10 = sorted_df.head(10)
-        remaining = sorted_df.tail(len(df) - 10)
-        
+        remaining = sorted_df.tail(len(self._df) - 10)
+
         top_asthma = top_10["asthma_prevalence"]
         remaining_asthma = remaining["asthma_prevalence"]
 
-        t_stat, p_value = stats.ttest_ind(top_asthma, remaining_asthma, equal_var=False)
+        t_stat, p_value = stats.ttest_ind(
+            top_asthma,
+            remaining_asthma,
+            equal_var=False)
 
         print("Research Question 2")
         print(f"T-statistic: {t_stat:.4f}")
@@ -87,9 +105,11 @@ class ResearchQuestions:
         plt.figure(figsize=(8, 6))
         means = [top_asthma.mean(), remaining_asthma.mean()]
         errors = [top_asthma.std(), remaining_asthma.std()]
-        
-        plt.bar(['Top 10 PM2.5 Counties', 'Other Counties'], means, yerr=errors,
-                capsize=5, color=['darkred', 'steelblue'], alpha=0.7)
+
+        plt.bar(
+            ['Top 10 PM2.5 Counties', 'Other Counties'],
+            means, yerr=errors,
+            capsize=5, color=['darkred', 'steelblue'], alpha=0.7)
         plt.ylabel('Mean Asthma Prevalence (%)')
         plt.title(
             f'RQ2: Asthma Prevalence Comparison\n'
@@ -97,15 +117,14 @@ class ResearchQuestions:
         plt.savefig("rq2_ttest_comparison.png")
         plt.close()
 
-    def rq_3(df: pd.DataFrame) -> None:
+    def rq_3(self) -> None:
         """
         Research Question 3:
         Can county-level PM2.5 concentrations predict asthma prevalence?
-    
         Uses statsmodels for linear regression with confidence intervals.
         """
-        x = df["annual_mean_pm25"]
-        y = df["asthma_prevalence"]
+        x = self._df["annual_mean_pm25"]
+        y = self._df["asthma_prevalence"]
         x = sm.add_constant(x)
         model = sm.OLS(y, x).fit()
 
@@ -124,27 +143,30 @@ class ResearchQuestions:
         print(f"95% Confidence Interval: [{lower:.4f}, {upper:.4f}]")
 
         if p_value < 0.05:
-            print("Conclusion: PM2.5 is a statistically significant predictor.")
+            print(
+                "PM2.5 is a statistically significant predictor."
+                )
         else:
-            print("Conclusion: PM2.5 is NOT a statistically significant predictor.")
+            print(
+                "PM2.5 is not a statistically significant predictor."
+                )
 
         if lower <= 0 <= upper:
-            print("Confidence interval includes 0 → effect may not be meaningful.")
+            print("Confidence interval includes 0")
         else:
-            print("Confidence interval does NOT include 0 → stronger evidence of effect.")
+            print("Confidence interval does not include 0")
 
-
-
-        # Regression plot for R3
         plt.figure(figsize=(10, 6))
-        sns.regplot(data=df, x="annual_mean_pm25", y="asthma_prevalence",
+        sns.regplot(data=self._df, x="annual_mean_pm25", y="asthma_prevalence",
                     scatter_kws={"alpha": 0.7}, line_kws={"color": "red"})
 
         plt.title("Linear Regression: PM2.5 vs Asthma Prevalence")
         plt.xlabel("Annual Mean PM2.5 Concentration")
-        plt.ylabel( "Asthma Prevalence (%)")
+        plt.ylabel("Asthma Prevalence (%)")
         plt.savefig("rq3_regression_model.png")
         plt.close()
+        return model
+
 
 def main():
     """
@@ -153,11 +175,12 @@ def main():
     print("Running Analysis for Final Project")
     df = data_cleaning.load_and_merge_data()
 
-    ResearchQuestions.rq_1(df)
-    ResearchQuestions.rq_2(df)
-    ResearchQuestions.rq_3(df)
+    rq = ResearchQuestions(df)
+
+    rq.rq_1()
+    rq.rq_2()
+    rq.rq_3()
 
 
 if __name__ == "__main__":
     main()
-
