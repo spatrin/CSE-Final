@@ -2,136 +2,100 @@
 Sophia Patrin & Melodie Nekoorad
 CSE 163
 Final Project
-Exploratory Data Analysis
 
-Description: Testing file for EPA and CDC analysis.
+Description:
+Testing file for PM2.5 and asthma prevalence analysis.
 """
 
 import pandas as pd
-from eda_analysis import EPAAnalysis, CDCAnalysis, merge_datasets
+import data_cleaning
+from analysis import ResearchQuestions
 
+df = data_cleaning.load_and_merge_data()
 
-def test_epa_load() -> None:
-    analysis = EPAAnalysis()
-    analysis.load_data()
-    
-    assert analysis._epa is not None
-    assert isinstance(analysis._epa, pd.DataFrame)
-
-
-def test_epa_columns() -> None:
-    analysis = EPAAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    assert "Date" in analysis._epa.columns
-    assert "Daily Mean PM2.5 Concentration" in analysis._epa.columns
-    assert "Daily AQI Value" in analysis._epa.columns
-    assert "County" in analysis._epa.columns
-
-
-def test_epa_types() -> None:
-    analysis = EPAAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    assert pd.api.types.is_datetime64_any_dtype(analysis._epa["Date"])
-    assert pd.api.types.is_numeric_dtype(analysis._epa["Daily Mean PM2.5 Concentration"])
-
-
-def test_epa_no_negative_pm25() -> None:
-    analysis = EPAAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    assert (analysis._epa["Daily Mean PM2.5 Concentration"] >= 0).all()
-
-
-def test_epa_county_avg() -> None:
-    analysis = EPAAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    df = analysis.compute_county_avg()
-    
+def test_load_and_merge_data() -> None:
+    """
+    Tests that merged dataset loads correctly.
+    """
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
 
 
-def test_epa_correlation() -> None:
-    analysis = EPAAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    corr = analysis._epa["Daily Mean PM2.5 Concentration"].corr(analysis._epa["Daily AQI Value"])
-    assert corr > 0
+def test_required_columns() -> None:
+    """
+    Tests that merged dataframe contains required columns.
+    """
+    assert "county" in df.columns
+    assert "annual_mean_pm25" in df.columns
+    assert "asthma_prevalence" in df.columns
 
 
-def test_cdc_load() -> None:
-    analysis = CDCAnalysis()
-    analysis.load_data()
-    
-    assert analysis._cdc is not None
-    assert isinstance(analysis._cdc, pd.DataFrame)
+def test_no_missing_values() -> None:
+    """
+    Tests that key columns contain no missing values.
+    """
+    assert df["annual_mean_pm25"].isnull().sum() == 0
+    assert df["asthma_prevalence"].isnull().sum() == 0
 
 
-def test_cdc_clean() -> None:
-    analysis = CDCAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    assert analysis._asthma is not None
-    assert len(analysis._asthma) == 39
+def test_pm25_nonnegative() -> None:
+    """
+    PM2.5 concentrations should not be negative.
+    """
+    assert (df["annual_mean_pm25"] >= 0).all()
 
 
-def test_cdc_columns() -> None:
-    analysis = CDCAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    assert "county" in analysis._asthma.columns
-    assert "asthma_prevalence" in analysis._asthma.columns
+def test_asthma_nonnegative() -> None:
+    """
+    Asthma prevalence values should not be negative.
+    """
+    assert (df["asthma_prevalence"] >= 0).all()
 
 
-def test_cdc_no_missing() -> None:
-    analysis = CDCAnalysis()
-    analysis.load_data()
-    analysis.clean_data()
-    
-    assert analysis._asthma["asthma_prevalence"].isnull().sum() == 0
+def test_county_count() -> None:
+    """
+    Washington should contain counties after merge.
+    """
+    assert len(df) > 0
+    assert len(df["county"].unique()) > 0
 
 
-def test_merge() -> None:
-    epa_analysis = EPAAnalysis()
-    epa_analysis.load_data()
-    epa_analysis.clean_data()
-    
-    cdc_analysis = CDCAnalysis()
-    cdc_analysis.load_data()
-    cdc_analysis.clean_data()
-    
-    merged = merge_datasets(epa_analysis.get_epa_data(), cdc_analysis.get_asthma_data())
-    
-    assert isinstance(merged, pd.DataFrame)
-    assert len(merged) > 0
-    assert "annual_mean_pm25" in merged.columns
-    assert "asthma_prevalence" in merged.columns
+def test_rq1_runs() -> None:
+    """
+    Tests that Research Question 1 runs without errors.
+    """
+    ResearchQuestions.rq_1(df)
+
+
+def test_rq2_runs() -> None:
+    """
+    Tests that Research Question 2 runs without errors.
+    """
+    ResearchQuestions.rq_2(df)
+
+
+def test_rq3_runs() -> None:
+    """
+    Tests that Research Question 3 runs without errors.
+    """
+    ResearchQuestions.rq_3(df)
 
 
 def main() -> None:
-    test_epa_load()
-    test_epa_columns()
-    test_epa_types()
-    test_epa_no_negative_pm25()
-    test_epa_county_avg()
-    test_epa_correlation()
-    test_cdc_load()
-    test_cdc_clean()
-    test_cdc_columns()
-    test_cdc_no_missing()
-    test_merge()
-    
-    print("All tests passed")
+    """
+    Runs all tests.
+    """
+    test_load_and_merge_data()
+    test_required_columns()
+    test_no_missing_values()
+    test_pm25_nonnegative()
+    test_asthma_nonnegative()
+    test_county_count()
+    test_rq1_runs()
+    test_rq2_runs()
+    test_rq3_runs()
+
+    print("All tests passed!")
 
 
 if __name__ == "__main__":
